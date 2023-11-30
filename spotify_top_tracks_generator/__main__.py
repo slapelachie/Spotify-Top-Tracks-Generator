@@ -1,5 +1,5 @@
 """
-Spotify Top Artist Playlist Generator
+Spotify Top Tracks Playlist Generator
 
 Author: <slapelachie@gmail.com>
 
@@ -18,7 +18,7 @@ Spotify account.
 """
 import logging
 import spotipy
-from spotify_top_artist.config import (
+from spotify_top_tracks_generator.config import (
     SPOTIFY_CLIENT_ID,
     SPOTIFY_SECRET,
     SPOTIFY_USERNAME,
