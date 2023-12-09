@@ -68,6 +68,7 @@ def create_playlist(spotify, name: str, description: str = ""):
     Args:
         spotify: Spotify API client instance.
         name (str): The name of the new playlist.
+        description (str): The description for the new playlist
 
     Returns:
         str: The unique identifier (ID) of the newly created playlist.
@@ -152,7 +153,9 @@ def get_playlist_id_by_name(playlists, name: str):
     return None
 
 
-def create_or_replace_playlist(spotify, playlists, playlist_name, track_ids):
+def create_or_replace_playlist(
+    spotify, playlists, playlist_name: str, track_ids, description: str = ""
+):
     """
     Creates a new playlist or replaces the tracks of an existing playlist with the specified name.
 
@@ -161,23 +164,17 @@ def create_or_replace_playlist(spotify, playlists, playlist_name, track_ids):
         playlists (list): A list of dictionaries representing existing playlists.
         playlist_name (str): The name of the playlist to create or replace.
         track_ids (list): A list of track IDs to populate the playlist with.
+        description (str): The description for the playlist
     """
     existing_playlist_id = get_playlist_id_by_name(playlists, playlist_name)
-
-    current_datetime = datetime.now()
-    playlist_description = f"Generated: {current_datetime.strftime('%Y-%m-%d %H:%M')}"
 
     if existing_playlist_id:
         spotify.user_playlist_replace_tracks(
             SPOTIFY_USERNAME, existing_playlist_id, track_ids
         )
-        spotify.playlist_change_details(
-            existing_playlist_id, description=playlist_description
-        )
+        spotify.playlist_change_details(existing_playlist_id, description=description)
     else:
-        playlist_id = create_playlist(
-            spotify, playlist_name, description=playlist_description
-        )
+        playlist_id = create_playlist(spotify, playlist_name, description=description)
         spotify.user_playlist_add_tracks(SPOTIFY_USERNAME, playlist_id, track_ids)
 
 
@@ -214,16 +211,27 @@ def main():
 
     user_playlists = get_user_playlists(spotify)
 
+    current_datetime = datetime.now()
+    playlist_description = f"Generated: {current_datetime.strftime('%Y-%m-%d %H:%M')}"
+
     top_six_month_tracks = get_top_tracks(spotify, "medium_term")
     top_six_month_track_ids = get_track_ids(top_six_month_tracks)
     create_or_replace_playlist(
-        spotify, user_playlists, TOP_SIX_MONTHS_PLAYLIST_NAME, top_six_month_track_ids
+        spotify,
+        user_playlists,
+        TOP_SIX_MONTHS_PLAYLIST_NAME,
+        top_six_month_track_ids,
+        description=playlist_description,
     )
 
     top_month_tracks = get_top_tracks(spotify, "short_term")
     top_month_track_ids = get_track_ids(top_month_tracks)
     create_or_replace_playlist(
-        spotify, user_playlists, TOP_MONTH_PLAYLIST_NAME, top_month_track_ids
+        spotify,
+        user_playlists,
+        TOP_MONTH_PLAYLIST_NAME,
+        top_month_track_ids,
+        description=playlist_description,
     )
 
 
