@@ -17,6 +17,7 @@ Note: If running the script for the first time, it may prompt you to authorize a
 Spotify account.
 """
 import logging
+from datetime import datetime
 import spotipy
 from spotify_top_tracks_generator.config import (
     SPOTIFY_CLIENT_ID,
@@ -60,7 +61,7 @@ def get_top_tracks(spotify, time_range: str = "medium_term", limit: int = 50):
     return top_tracks_info.get("items")
 
 
-def create_playlist(spotify, name: str):
+def create_playlist(spotify, name: str, description: str = ""):
     """
     Creates a new playlist on Spotify with the specified name.
 
@@ -76,7 +77,9 @@ def create_playlist(spotify, name: str):
             data.
     """
     try:
-        new_playlist = spotify.user_playlist_create(SPOTIFY_USERNAME, name)
+        new_playlist = spotify.user_playlist_create(
+            SPOTIFY_USERNAME, name, description=description
+        )
         playlist_id = new_playlist.get("id")
         if not playlist_id:
             raise ValueError(
@@ -161,12 +164,20 @@ def create_or_replace_playlist(spotify, playlists, playlist_name, track_ids):
     """
     existing_playlist_id = get_playlist_id_by_name(playlists, playlist_name)
 
+    current_datetime = datetime.now()
+    playlist_description = f"Generated: {current_datetime.strftime('%Y-%m-%d %H:%M')}"
+
     if existing_playlist_id:
         spotify.user_playlist_replace_tracks(
             SPOTIFY_USERNAME, existing_playlist_id, track_ids
         )
+        spotify.playlist_change_details(
+            existing_playlist_id, description=playlist_description
+        )
     else:
-        playlist_id = create_playlist(spotify, playlist_name)
+        playlist_id = create_playlist(
+            spotify, playlist_name, description=playlist_description
+        )
         spotify.user_playlist_add_tracks(SPOTIFY_USERNAME, playlist_id, track_ids)
 
 
