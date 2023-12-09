@@ -288,9 +288,7 @@ def main():
 
     args = get_arguments()
 
-    time_frames = (
-        args.time_frame.split(",") if args.time_frames else DEFAULT_TIME_FRAMES
-    )
+    time_frames = args.time_frame.split(",") if args.time_frame else DEFAULT_TIME_FRAMES
 
     time_frames = args.time_frame.split(",")
     for time_frame in time_frames:
