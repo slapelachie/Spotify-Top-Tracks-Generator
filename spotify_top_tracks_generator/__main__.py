@@ -17,18 +17,23 @@ Note: If running the script for the first time, it may prompt you to authorize a
 Spotify account.
 """
 import logging
+import argparse
 from datetime import datetime
+
 import spotipy
+
 from spotify_top_tracks_generator.config import (
     SPOTIFY_CLIENT_ID,
     SPOTIFY_SECRET,
     SPOTIFY_USERNAME,
     REDIRECT_URI,
+    TOP_LONG_TERM_PLAYLIST_NAME,
+    TOP_MEDIUM_TERM_PLAYLIST_NAME,
+    TOP_SHORT_TERM_PLAYLIST_NAME,
+    DEFAULT_TIME_FRAMES,
 )
 
 SCOPE = ["user-top-read", "playlist-modify-public", "playlist-modify-private"]
-TOP_SIX_MONTHS_PLAYLIST_NAME = "Top Songs - Last 6 Months"
-TOP_MONTH_PLAYLIST_NAME = "Top Songs - Last Month"
 
 logging.basicConfig(level=logging.INFO)
 
@@ -198,41 +203,98 @@ def get_spotify_token():
     return token
 
 
-def main():
+def get_top_playlist_name(time_frame: str):
     """
-    Main function to run the Spotify playlist management.
+    Get the appropriate playlist name based on the specified time frame.
 
-    This function retrieves the user's Spotify token, fetches the user's playlists, gets the top
-    tracks for the last six months and the last month, and creates or replaces playlists with
-    these top tracks.
+    Args:
+        time_frame (str): Time frame for fetching top tracks ('short_term', 'medium_term', or
+            'long_term').
+
+    Returns:
+        str: Playlist name corresponding to the time frame.
+
+    Raises:
+        ValueError: If an invalid time frame is provided.
     """
-    token = get_spotify_token()
-    spotify = spotipy.Spotify(auth=token)
+    if time_frame == "short_term":
+        return TOP_SHORT_TERM_PLAYLIST_NAME
+
+    if time_frame == "medium_term":
+        return TOP_MEDIUM_TERM_PLAYLIST_NAME
+
+    if time_frame == "long_term":
+        return TOP_LONG_TERM_PLAYLIST_NAME
+
+    raise ValueError(f"Invalid time frame: {time_frame}")
+
+
+def generate_top_playlist(spotify, time_frame: str = "short_term"):
+    """
+    Generate a Spotify playlist with top tracks based on the specified time frame.
+
+    Args:
+        spotify: Spotify client object.
+        time_frame (str, optional): Time frame for fetching top tracks ('short_term',
+            'medium_term', or 'long_term'). Defaults to 'short_term'.
+    """
+    top_tracks = get_top_tracks(spotify, time_frame)
+    top_track_ids = get_track_ids(top_tracks)
 
     user_playlists = get_user_playlists(spotify)
+
+    playlist_name = get_top_playlist_name(time_frame)
 
     current_datetime = datetime.now()
     playlist_description = f"Generated: {current_datetime.strftime('%Y-%m-%d %H:%M')}"
 
-    top_six_month_tracks = get_top_tracks(spotify, "medium_term")
-    top_six_month_track_ids = get_track_ids(top_six_month_tracks)
     create_or_replace_playlist(
         spotify,
         user_playlists,
-        TOP_SIX_MONTHS_PLAYLIST_NAME,
-        top_six_month_track_ids,
+        playlist_name,
+        top_track_ids,
         description=playlist_description,
     )
 
-    top_month_tracks = get_top_tracks(spotify, "short_term")
-    top_month_track_ids = get_track_ids(top_month_tracks)
-    create_or_replace_playlist(
-        spotify,
-        user_playlists,
-        TOP_MONTH_PLAYLIST_NAME,
-        top_month_track_ids,
-        description=playlist_description,
+
+def get_arguments():
+    """
+    Parse command-line arguments for the Spotify playlist management script.
+
+    Args:
+        argparse.Namespace: An object containing the parsed command-line arguments.
+    """
+    parser = argparse.ArgumentParser(
+        description="""A script to fetch top tracks from Spotify within a specified time frame and
+create a playlist."""
     )
+    parser.add_argument(
+        "--time-frame",
+        help="Specify the time frame(s) separated by commas ('short_term,medium_term,long_term')",
+    )
+
+    return parser.parse_args()
+
+
+def main():
+    """
+    Main function to run the Spotify playlist management.
+
+    This function retrieves the user's Spotify token and creates or replaces playlists with top
+    tracks based on the specified time frame(s).
+    """
+    token = get_spotify_token()
+    spotify = spotipy.Spotify(auth=token)
+
+    args = get_arguments()
+
+    time_frames = (
+        args.time_frame.split(",") if args.time_frames else DEFAULT_TIME_FRAMES
+    )
+
+    time_frames = args.time_frame.split(",")
+    for time_frame in time_frames:
+        generate_top_playlist(spotify, time_frame)
 
 
 if __name__ == "__main__":
